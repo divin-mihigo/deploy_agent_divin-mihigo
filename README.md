@@ -149,3 +149,8 @@ The video presentation demonstrates the script's structure, dependency checks, d
 
 The Student Attendance Tracker Deployment Agent uses Bash to automate deployment tasks, launch an attendance application, manage file permissions, archive logs, and handle configured interruption signals. Testing the normal workflow and edge cases helps verify that the script behaves as expected.
 
+## Video Demonstration
+
+Watch my video demonstrating deployment, attendance tracking, log archiving, and interruption handling.
+
+[Watch the project demonstration on YouTube](https://youtu.be/uAqJWW92W1M?si=TW2WGqQvSDm83Ajb)
