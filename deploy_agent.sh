@@ -110,14 +110,27 @@ deploy() {
 
     if [[ "$option" == "1" ]]; then
 
-        cp "$TEMPLATES/assets.csv" \
-           "$PROJECT_DIR/Helpers/assets.csv"
+        read -r -p "How many students to copy? (1-10): " count
 
-        echo "Template roster copied."
+        if [[ ! "$count" =~ ^[0-9]+$ ]] || \
+           (( count < 1 || count > 10 )); then
+            echo "ERROR: Invalid number of students."
+            exit 1
+        fi
+
+        # Copy the header row plus the requested number of student rows
+        head -n 1 "$TEMPLATES/assets.csv" \
+            > "$PROJECT_DIR/Helpers/assets.csv"
+
+        tail -n +2 "$TEMPLATES/assets.csv" \
+            | head -n "$count" \
+            >> "$PROJECT_DIR/Helpers/assets.csv"
+
+        echo "Template roster copied ($count students)."
 
     elif [[ "$option" == "2" ]]; then
 
-        names=("Milka" "Axel" "Ryan" "Davis" "Kevin" "Kentha" "Calvin" "Caidy" "Vaillant")
+        names=("Milka" "Axel" "Ryan" "Davis" "Kevin" "Kentha" "Calvin" "Caidy" "Vaillant" "Diane")
         emails=(
             "milka@alustudent.com"
             "axel@alustudent.com"
@@ -128,6 +141,7 @@ deploy() {
             "calvin@alustudent.com"
             "caidy@alustudent.com"
             "vaillant@alustudent.com"
+            "diane@alustudent.com"
         )
 
         read -r -p "How many students? (1-${#names[@]}): " count
@@ -235,19 +249,19 @@ archive_logs() {
     mkdir -p "$PROJECT_DIR/archives/absent"
 
     if [[ -f "$PROJECT_DIR/reports/attendance.log" ]]; then
-        cp "$PROJECT_DIR/reports/attendance.log" \
-           "$PROJECT_DIR/archives/attendance/attendance_${timestamp}.log"
+        dest="$PROJECT_DIR/archives/attendance/attendance_${timestamp}.log"
+        cp "$PROJECT_DIR/reports/attendance.log" "$dest"
 
-        echo "Attendance log archived."
+        echo "Attendance log archived -> $dest"
     else
         echo "No attendance.log found."
     fi
 
     if [[ -f "$PROJECT_DIR/reports/absent.log" ]]; then
-        cp "$PROJECT_DIR/reports/absent.log" \
-           "$PROJECT_DIR/archives/absent/absent_${timestamp}.log"
+        dest="$PROJECT_DIR/archives/absent/absent_${timestamp}.log"
+        cp "$PROJECT_DIR/reports/absent.log" "$dest"
 
-        echo "Absence log archived."
+        echo "Absence log archived -> $dest"
     else
         echo "No absent.log found."
     fi

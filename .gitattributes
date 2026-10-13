@@ -1,0 +1,6 @@
+# Force LF line endings so the shell script runs correctly on Linux/WSL/WebTerm.
+# Without this, core.autocrlf=true on Windows would rewrite .sh files to CRLF,
+# which breaks bash scripts on the grading environment.
+*.sh text eol=lf
+templates/assets.csv text eol=lf
+templates/config.json text eol=lf
