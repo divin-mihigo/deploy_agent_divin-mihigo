@@ -1,271 +1,151 @@
-# Automated Project Bootstrapping & Process Management
+# Student Attendance Tracker Deployment Agent
 
-## Project
+## 1. Project Overview
 
-This repository contains `deploy_agent.sh`, a shell automation script for deploying, running, and archiving a Student Attendance Tracker.
+The Student Attendance Tracker Deployment Agent is a Bash script that automates the deployment, execution, and archiving of a student attendance tracking application.
 
-## Files
+The script provides an interactive menu that allows users to deploy a new attendance tracker, run an existing tracker, or archive attendance logs.
 
-```text
-deploy_agent.sh
-templates/
-├── attendance_checker.py
-├── assets.csv
-└── config.json
-```
+## 2. Features
 
-> **Important:** `attendance_checker.py` must be the unmodified file supplied by the course. It was not included in the uploaded files for this build, so copy the course version into `templates/attendance_checker.py` before running the deployment.
+- **Automated deployment:** Creates the project directory and copies the required template files.
+- **Dependency checks:** Checks whether required commands, including `python3` and `zip`, are installed.
+- **Input validation:** Validates project suffixes and checks that required template files exist.
+- **Roster setup:** Allows users to use a template roster or create a fresh roster.
+- **File permissions:** Applies appropriate permissions to the configuration file and Python script.
+- **Attendance tracking:** Runs the attendance checker to record student attendance.
+- **Log archiving:** Copies attendance and absence logs into timestamped archive folders.
+- **Signal handling:** Uses Bash `trap` to handle `SIGINT` and `SIGTSTP` during deployment.
 
-## Requirements
+## 3. Requirements
 
-- Linux/macOS/WSL or the ALU WebTerm terminal
-- `bash`
-- `python3`
+The following tools are required:
+
+- Bash
+- Python 3
 - `zip`
 
-The deploy feature checks for `python3` and `zip` before creating the project.
+The script is intended to run in a Linux environment, such as Ubuntu or Windows Subsystem for Linux (WSL).
 
-## How to run
+## 4. Project Structure
 
-Make the master script executable:
+```text
+deploy_agent_divin-mihigo/
+├── deploy_agent.sh
+├── README.md
+├── templates/
+│   ├── attendance_checker.py
+│   ├── assets.csv
+│   └── config.json
+└── attendance_tracker_<suffix>/
+    ├── attendance_checker.py
+    ├── Helpers/
+    │   ├── assets.csv
+    │   └── config.json
+    ├── reports/
+    │   ├── attendance.log
+    │   └── absent.log
+    └── archives/
+```
+
+The deployed project directory is created when the user selects the deployment option. Archive files and folders depend on the script's execution and configuration.
+
+## 5. How to Run the Script
+
+Open a Linux or Ubuntu terminal and navigate to the directory containing `deploy_agent.sh`.
+
+Make the script executable:
 
 ```bash
 chmod +x deploy_agent.sh
 ```
 
-Then start the interactive menu:
+Start the deployment agent:
 
 ```bash
 ./deploy_agent.sh
 ```
 
-Menu:
-
-1. **Deploy** — creates a new `attendance_tracker_<suffix>` project.
-2. **Run** — runs an existing deployed project.
-3. **Archive** — archives the generated logs.
-
-Command-line forms are also supported:
-
-```bash
-./deploy_agent.sh deploy
-./deploy_agent.sh run
-./deploy_agent.sh archive
-```
-
-## Feature 1 — Deploy
-
-The script asks for a suffix such as `class1`. It creates:
+The script displays an interactive menu:
 
 ```text
-attendance_tracker_class1/
-├── attendance_checker.py
-├── Helpers/
-│   ├── assets.csv
-│   └── config.json
-├── reports/
-└── archives/
-    ├── attendance/
-    └── absent/
+1. Deploy
+2. Run
+3. Archive logs
 ```
 
-If the project already exists, the script asks before deleting/replacing it.
+Choose an option by entering its corresponding number.
 
-### Roster Option A
+### Option 1: Deploy
 
-Copies the selected number of student rows from `templates/assets.csv`, keeping the header.
+The script checks the required commands and template files, requests a project suffix, creates the project structure, copies the templates, and configures file permissions.
 
-The supplied template has 10 students with four prior sessions each, so the deployed config remains:
+The user can select a template roster or create a fresh roster. After setup, the attendance checker is launched.
 
-```json
-"total_sessions": 5
-```
+### Option 2: Run
 
-### Roster Option B
+The script requests the suffix of an existing project and runs its attendance checker.
 
-Generates a fresh roster from sample names/emails defined inside the shell script. Attendance and absence counts start at `0`.
+### Option 3: Archive Logs
 
-Because a fresh roster has zero prior sessions, the script changes the deployed `total_sessions` to:
+The script requests the project suffix and copies available attendance and absence logs into timestamped archive locations. This helps preserve previous attendance records.
 
-```json
-"total_sessions": 1
-```
+## 6. Archive Trigger and Signal Handling
 
-The course specification also says the source `config.json` is deployed unmodified. The fresh-roster requirement necessarily needs `total_sessions=1`, so Option B is the one controlled exception: the script keeps the template's formatting/order and changes only that numeric value.
+There are two separate archiving mechanisms.
 
-### Permissions
+### Manual log archiving
 
-The script sets:
+Manual log archiving is triggered when the user selects **option 3** from the main menu.
 
-```text
-attendance_checker.py -> executable
-Helpers/config.json   -> 600
-```
+The script copies available `attendance.log` and `absent.log` files into timestamped archive locations. If a log file is missing, the script reports that condition rather than treating the file as available.
 
-`600` means only the owner can read and write the config file.
+### Deployment interruption archive
 
-### Threshold updates
+During deployment, the script installs a Bash `trap` for `SIGINT` and `SIGTSTP`.
 
-The user can choose to update:
+- `SIGINT` is normally generated by pressing `Ctrl+C`.
+- `SIGTSTP` is normally generated by pressing `Ctrl+Z`.
 
-- warning threshold (default 75)
-- failure threshold (default 50)
+When the configured interruption handler runs, it attempts to create a ZIP archive of the incomplete project. If the ZIP archive is successfully created, the incomplete project directory is removed. The handler then exits with status code `130`.
 
-The script uses `sed -i` and targets the `"warning": <number>` and `"failure": <number>` lines specifically, without reordering or reformatting the JSON.
+This interruption handler is configured during deployment; it should not be described as an automatic archive trigger for every error or for all normal application runs.
 
-After setup, the deploy feature automatically starts `attendance_checker.py` as its verification step.
+## 7. Error Handling and Edge Cases
 
-## Feature 2 — Run
+The script includes checks and validation for several situations:
 
-Run an already deployed project:
+- Missing required commands, such as `python3` or `zip`.
+- Missing template files.
+- Invalid project suffixes.
+- Invalid roster or threshold input.
+- Missing log files during log archiving.
+- Interruptions during deployment.
 
-```bash
-./deploy_agent.sh run
-```
+The script checks whether the ZIP archive was created successfully before removing the incomplete project directory. However, some invalid-input paths may leave an incomplete directory, so additional cleanup handling could improve robustness.
 
-Enter the project suffix. The script changes into the project directory and executes:
+## 8. Testing Checklist
 
-```bash
-python3 attendance_checker.py
-```
+Run these tests in your Linux environment and record the actual results before submission.
 
-The application is interactive, so the instructor can mark a short live attendance session.
+- [ ] **Successful deployment:** Select option 1 and confirm that the project directory and required files are created.
+- [ ] **Dependency check:** Test with a required command unavailable and confirm that the script reports the missing command.
+- [ ] **Invalid input:** Enter an invalid project suffix and confirm that it is rejected.
+- [ ] **Application execution:** Select option 2 and confirm that the attendance checker starts.
+- [ ] **Log archiving:** Select option 3 and verify that available logs are copied to timestamped archive locations.
+- [ ] **Missing log:** Test archiving when one log is absent and verify that the script reports it appropriately.
+- [ ] **Interruption handling:** Interrupt deployment with `Ctrl+C` and verify whether the ZIP archive is created and the incomplete project directory is removed.
+- [ ] **Suspension signal:** Test the configured `SIGTSTP` handler and verify the actual behavior.
 
-## Feature 3 — Archive logs
+Do not mark a test as passed until you have run it and checked the result.
 
-After a run:
+## 9. Video Presentation
 
-```bash
-./deploy_agent.sh archive
-```
+The video presentation demonstrates the script's structure, dependency checks, deployment process, attendance tracker execution, log archiving, signal handling, and relevant edge cases.
 
-The script checks:
+**Video link:** Replace this line with the link to your uploaded presentation.
 
-```text
-reports/attendance.log
-reports/absent.log
-```
+## 10. Conclusion
 
-Each existing log is copied into its own archive directory with a timestamp:
+The Student Attendance Tracker Deployment Agent uses Bash to automate deployment tasks, launch an attendance application, manage file permissions, archive logs, and handle configured interruption signals. Testing the normal workflow and edge cases helps verify that the script behaves as expected.
 
-```text
-archives/
-├── attendance/
-│   └── attendance_YYYYMMDD_HHMMSS.log
-└── absent/
-    └── absent_YYYYMMDD_HHMMSS.log
-```
-
-If a log does not exist, the script reports that fact and continues without crashing.
-
-## Ctrl+C / Ctrl+Z handling during deployment
-
-During Feature 1, both signals are trapped:
-
-- `Ctrl+C` → `SIGINT`
-- `Ctrl+Z` → `SIGTSTP`
-
-If either signal interrupts deployment, the script:
-
-1. Prints a clear interruption message.
-2. Archives whatever project directory exists so far.
-3. Creates:
-
-```text
-attendance_tracker_<suffix>_archive.zip
-```
-
-4. Exits cleanly.
-
-The archive contains the incomplete project directory and whatever files/directories had already been created.
-
-The signal trap is removed before the interactive Python application starts, so it is specifically for the shell deployment process and not for an attendance-marking session.
-
-## Testing checklist
-
-### Test deployment
-
-```bash
-./deploy_agent.sh deploy
-```
-
-Choose a suffix and roster option. Verify:
-
-```bash
-ls -la attendance_tracker_<suffix>
-ls -la attendance_tracker_<suffix>/Helpers
-ls -la attendance_tracker_<suffix>/reports
-```
-
-Check permissions:
-
-```bash
-ls -l attendance_tracker_<suffix>/attendance_checker.py
-ls -l attendance_tracker_<suffix>/Helpers/config.json
-```
-
-Expected config permission:
-
-```text
--rw------- ... config.json
-```
-
-### Test run
-
-```bash
-./deploy_agent.sh run
-```
-
-Mark several students and verify:
-
-```bash
-ls -l attendance_tracker_<suffix>/reports
-```
-
-### Test archive
-
-```bash
-./deploy_agent.sh archive
-```
-
-Then:
-
-```bash
-ls -l attendance_tracker_<suffix>/archives/attendance
-ls -l attendance_tracker_<suffix>/archives/absent
-```
-
-### Test Ctrl+C / Ctrl+Z
-
-Start a deployment and interrupt it while the project is being created:
-
-```bash
-./deploy_agent.sh deploy
-```
-
-Press `Ctrl+C` or `Ctrl+Z` during deployment.
-
-Verify the generated archive:
-
-```bash
-ls -l attendance_tracker_<suffix>_archive.zip
-unzip -l attendance_tracker_<suffix>_archive.zip
-```
-
-## GitHub submission
-
-Create a repository named:
-
-```text
-deploy_agent_GithubUsername
-```
-
-Then add:
-
-```bash
-git add deploy_agent.sh README.md templates/
-git commit -m "Build automated attendance deployment agent"
-git push
-```
-
-Include the run-through video link in the GitHub README before submitting.
